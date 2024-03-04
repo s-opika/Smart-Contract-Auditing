@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title Auction Contract
+ * Note: This contract is for educational purposes and contains several security vulnerabilities.
+ */
+contract VulnerableAuction {
+    address payable public highestBidder;
+    uint public highestBid;
+    mapping(address => uint) public refunds;
+
+    event NewHighestBid(address bidder, uint amount);
+    event RefundIssued(address recipient, uint amount);
+
+    modifier onlyNotOwner() {
+        require(msg.sender != owner, "Owner cannot bid.");
+        _;
+    }
+
+    address payable owner;
+
+    constructor() {
+        owner = payable(msg.sender);
+    }
+
+    function bid() public payable onlyNotOwner {
+        require(msg.value > highestBid, "Bid is not higher than the current highest bid.");
+
+        if (highestBid != 0) {
+            // Refund the previous highest bidder their bid amount
+            refunds[highestBidder] += highestBid;
+        }
+
+        highestBidder = payable(msg.sender);
+        highestBid = msg.value;
+        emit NewHighestBid(msg.sender, msg.value);
+    }
+
+    function withdrawRefund() public {
+        uint refundAmount = refunds[msg.sender];
+        require(refundAmount > 0, "No refund available.");
+
+        refunds[msg.sender] = 0;
+        (bool success, ) = msg.sender.call{value: refundAmount}("");
+        require(success, "Refund failed.");
+
+        emit RefundIssued(msg.sender, refundAmount);
+    }
+
+    function endAuction() public {
+        require(msg.sender == owner, "Only the owner can end the auction.");
+        selfdestruct(owner);
+    }
+}
