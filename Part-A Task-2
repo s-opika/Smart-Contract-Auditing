@@ -1,0 +1,12 @@
+pragma solidity ^0.8.0;
+
+contract Token {
+    mapping(address => uint256) public balanceOf;
+
+    function transfer(address _to, uint256 _value) public returns (bool) {
+        require(balanceOf[msg.sender] >= _value);
+        balanceOf[msg.sender] -= _value; // Potential underflow
+        balanceOf[_to] += _value; // Potential overflow
+        return true;
+    }
+}
